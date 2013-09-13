@@ -18,10 +18,8 @@ module ZephyrosVlyrs
   end
 
   class Mode
-    attr_reader :keybinding, :commands
-
     def initialize(api, options)
-      @keybinding = options.fetch(:keybinding).dup.freeze
+      @mode_keybinding = options.fetch(:mode_keybinding).dup.freeze
       @consequent_keys_timeout = 200
       @api = api
 
@@ -51,7 +49,7 @@ module ZephyrosVlyrs
 
       dismiss = Command.new("dismiss", "ESCAPE") {}
 
-      @keys_tree = ZephyrosVlyrs.build_key_sequences_tree([
+      @keys_tree = build_key_sequences_tree([
         top_left_quarter,
         left_half,
         right_half,
@@ -59,15 +57,37 @@ module ZephyrosVlyrs
       ])
     end
 
+    def build_key_sequences_tree(commands)
+      current_node = KeySequenceNode.new(@mode_keybinding, [])
+      current_node.pre_code = proc { @api.show_box("Magic!") }
+      root_node = current_node
+      commands.each do |command|
+        processed_keys = []
+        command.keys.each do |key|
+          processed_keys.push(key)
+          matching_node = current_node.children.detect { |c| c.key == key }
+          if matching_node
+            current_node = matching_node
+          else
+            new_node = command.keys == processed_keys ? KeySequenceLeaf.new([key, []], command) : KeySequenceNode.new([key, []], [])
+            current_node.add_child new_node
+            current_node = new_node
+          end
+        end
+        current_node = root_node
+      end
+      root_node
+    end
+
     def bind_keys_tree(keys_tree)
-      p keys_tree.key
-      @api.bind *keys_tree.key do
+      @api.bind_key *keys_tree.key do
+        ZephyrosVlyrs.logger.debug("pressed #{keys_tree.key.inspect}")
         keys_tree.pre_code.call
         if keys_tree.parent
-          p "unbinding #{keys_tree.parent.children.map(&:key).inspect}"
-          keys_tree.parent.children.each { |c| @api.unbind *c.key }
+          keys_tree.parent.children.each { |c| @api.unbind_key *c.key }
+        else
+          @api.unbind_key *keys_tree.key
         end
-        @api.unbind *keys_tree.key
         if keys_tree.is_a?(KeySequenceLeaf)
           p keys_tree.command
           window = @api.focused_window
@@ -94,32 +114,10 @@ module ZephyrosVlyrs
       bind_keys_tree(@keys_tree)
     end
   end
-
-  def self.build_key_sequences_tree(commands)
-    current_node = KeySequenceNode.new(["F13", ["SHIFT"]], [])
-    current_node.pre_code = proc { API.show_box("Magic!") }
-    root_node = current_node
-    commands.each do |command|
-      processed_keys = []
-      command.keys.each do |key|
-        processed_keys.push(key)
-        matching_node = current_node.children.detect { |c| c.key == key }
-        if matching_node
-          current_node = matching_node
-        else
-          new_node = command.keys == processed_keys ? KeySequenceLeaf.new([key, []], command) : KeySequenceNode.new([key, []], [])
-          current_node.add_child new_node
-          current_node = new_node
-        end
-      end
-      current_node = root_node
-    end
-    root_node
-  end
 end
 
 api = ZephyrosVlyrs::Api.new(API)
-mode = ZephyrosVlyrs::Mode.new(api, :keybinding => ["F13", ["Shift"]])
+mode = ZephyrosVlyrs::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
 
 mode.activate!
 
@@ -146,5 +144,7 @@ it is
    /  \        |        |
 LEFT RIGHT    LEFT    RIGHT
 
+if stumbled upon sequence with both continuation and leaf (command) - run command if sequence is not continued
+within given timeout
 
 =end

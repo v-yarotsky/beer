@@ -8,14 +8,14 @@ module ZephyrosVlyrs
       @consequent_keys_timeout = options.fetch(:consequent_keys_timeout) { 0.5 }
     end
 
-    def bind_key(key, &block)
-      ZephyrosVlyrs.logger.debug("binding #{key}")
-      @api.bind(key, [], &block)
+    def bind_key(key, modifiers = [], &block)
+      ZephyrosVlyrs.logger.debug("binding #{key} #{modifiers.inspect}")
+      @api.bind(key, modifiers, &block)
     end
 
-    def unbind_key(key)
-      ZephyrosVlyrs.logger.debug("unbinding #{key}")
-      @api.unbind(key, [])
+    def unbind_key(key, modifiers = [])
+      ZephyrosVlyrs.logger.debug("unbinding #{key} #{modifiers.inspect}")
+      @api.unbind(key, modifiers)
     end
 
     def bind_sequence(*keys, &block)
