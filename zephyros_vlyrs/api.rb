@@ -1,0 +1,51 @@
+module ZephyrosVlyrs
+
+  class Api
+    class Error < StandardError; end
+
+    def initialize(api, options = {})
+      @api = api
+      @consequent_keys_timeout = options.fetch(:consequent_keys_timeout) { 0.5 }
+    end
+
+    def bind_key(key, &block)
+      ZephyrosVlyrs.logger.debug("binding #{key}")
+      @api.bind(key, [], &block)
+    end
+
+    def unbind_key(key)
+      ZephyrosVlyrs.logger.debug("unbinding #{key}")
+      @api.unbind(key, [])
+    end
+
+    def bind_sequence(*keys, &block)
+      keys = keys.dup
+      key = keys.shift
+      started = Time.now
+      received = false
+      t = Thread.new do
+        bind_key(key) { ZephyrosVlyrs.logger.debug("pressed #{key}"); @api.alert(key); received = true }
+      end
+      elapsed = Time.now - started
+      sleep([@consequent_keys_timeout - elapsed, 0].max)
+      t.join
+      if keys.empty?
+        block.call if received
+      else
+        bind_sequence(*keys, &block)
+      end
+    ensure
+      unbind_key(key)
+    end
+
+    def method_missing(method_name, *args, &block)
+      @api.send(method_name, *args, &block)
+    rescue RuntimeError => e
+      error = Error.new(e)
+      error.set_backtrace(e.backtrace)
+      raise error
+    end
+  end
+
+end
+

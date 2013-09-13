@@ -1,6 +1,12 @@
-require '/Applications/Zephyros.app/Contents/Resources/libs/zephyros.rb'
+$:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
+$:.unshift(File.dirname(__FILE__))
+require 'zephyros'
+require 'zephyros_vlyrs/api'
+require 'zephyros_vlyrs/command'
+require 'zephyros_vlyrs/key_sequence_node'
+require 'zephyros_vlyrs/key_sequence_leaf'
+require 'zephyros_vlyrs/transformable_rect'
 require 'logger'
-require 'delegate'
 
 module ZephyrosVlyrs
   Thread.abort_on_exception = true
@@ -35,143 +41,110 @@ module ZephyrosVlyrs
         win.frame = screen_frame.half_right_rect
       end
 
+      top_left_quarter = Command.new("top_left_quarter", "UP", "LEFT") do |win, screen_frame, api|
+        win.frame = screen_frame.top_left_quarter_rect
+      end
+
       maximize = Command.new("maximize", "RETURN") do |win, screen_frame, api|
         win.frame = screen_frame
       end
 
       dismiss = Command.new("dismiss", "ESCAPE") {}
 
-      @commands = [top_half, bottom_half, left_half, right_half, maximize, dismiss]
+      @keys_tree = ZephyrosVlyrs.build_key_sequences_tree([
+        top_left_quarter,
+        left_half,
+        right_half,
+        bottom_half
+      ])
     end
 
-    def consequent_keybinding(*keys)
-      key = keys.first
-      started = Time.now
-      received = false
-      t = Thread.new do
-        @api.bind(key, []) { @api.alert(key); received = true }
-      end
-      elapsed = Time.now - started
-      sleep([@consequent_keys_timeout.to_f / 1000 - elapsed, 0].max)
-      t.join
-      if keys.size == 1
-        return received
-      else
-        return consequent_keybinding(keys[1..-1])
-      end
-    ensure
-      @api.unbind(key, [])
-    end
-
-    def activate!
-      @api.show_box("Doing magic!")
-      bind_commands
-    end
-
-    def bind_commands
-      ZephyrosVlyrs.logger.debug("binding commands: #{@commands.map(&:inspect).join(", ")}")
-      window = @api.focused_window
-      screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
-      @commands.each do |cmd|
-        @api.bind cmd.key, cmd.mash do
-          ZephyrosVlyrs.logger.debug("#{cmd.name}, frame: #{screen_frame.inspect}")
-          cmd.code.call(window, screen_frame, @api)
+    def bind_keys_tree(keys_tree)
+      p keys_tree.key
+      @api.bind *keys_tree.key do
+        keys_tree.pre_code.call
+        if keys_tree.parent
+          p "unbinding #{keys_tree.parent.children.map(&:key).inspect}"
+          keys_tree.parent.children.each { |c| @api.unbind *c.key }
+        end
+        @api.unbind *keys_tree.key
+        if keys_tree.is_a?(KeySequenceLeaf)
+          p keys_tree.command
+          window = @api.focused_window
+          screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
+          ZephyrosVlyrs.logger.debug("#{keys_tree.command.name}, frame: #{screen_frame.inspect}")
+          keys_tree.command.code.call(window, screen_frame, @api)
           dismiss!
+        elsif keys_tree.is_a?(KeySequenceNode)
+          p keys_tree.children
+          keys_tree.children.each { |c| bind_keys_tree(c) }
+        else
+          raise "Something went wrong with tree"
         end
       end
     end
-    private :bind_commands
+
+    def activate!
+      bind_keys_tree(@keys_tree)
+    end
 
     def dismiss!
       ZephyrosVlyrs.logger.debug("dismissing")
-      @commands.each { |cmd| @api.unbind cmd.key, cmd.mash }
       @api.hide_box
+      bind_keys_tree(@keys_tree)
     end
   end
 
-  class Command
-    attr_reader :name, :key, :mash, :code
-
-    def initialize(name, key, mash = [], &block)
-      @name = name.dup.freeze
-      @key = key.dup.freeze
-      @mash = mash.dup.freeze
-      @code = block
+  def self.build_key_sequences_tree(commands)
+    current_node = KeySequenceNode.new(["F13", ["SHIFT"]], [])
+    current_node.pre_code = proc { API.show_box("Magic!") }
+    root_node = current_node
+    commands.each do |command|
+      processed_keys = []
+      command.keys.each do |key|
+        processed_keys.push(key)
+        matching_node = current_node.children.detect { |c| c.key == key }
+        if matching_node
+          current_node = matching_node
+        else
+          new_node = command.keys == processed_keys ? KeySequenceLeaf.new([key, []], command) : KeySequenceNode.new([key, []], [])
+          current_node.add_child new_node
+          current_node = new_node
+        end
+      end
+      current_node = root_node
     end
-
-    def inspect
-      "#<%s:%x %s %s %s" % [self.class.name, object_id, @name, @key.inspect, @mash.inspect]
-    end
-  end
-
-  class TransformableRect < DelegateClass(Rect)
-    def initialize(rect)
-      super(rect)
-      @rect = rect
-    end
-
-    def half_left_rect
-      make_rect(@rect.dup.tap { |r| r.w /= 2 })
-    end
-
-    def half_top_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2 })
-    end
-
-    def half_right_rect
-      make_rect(@rect.dup.tap { |r| r.w /= 2; r.x += r.w })
-    end
-
-    def half_bottom_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2; r.y += r.h })
-    end
-
-    def top_left_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2 })
-    end
-
-    def top_right_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.x += r.w })
-    end
-
-    def bottom_left_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.y += r.h })
-    end
-
-    def bottom_right_rect
-      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.x += r.w; r.y += r.h })
-    end
-
-    def make_rect(rect)
-      self.class.new(rect)
-    end
-    private :make_rect
-  end
-
-  class Api
-    class Error < StandardError; end
-
-    def initialize(api)
-      @api = api
-    end
-
-    def method_missing(method_name, *args, &block)
-      @api.send(method_name, *args, &block)
-    rescue RuntimeError => e
-      error = Error.new(e)
-      error.set_backtrace(e.backtrace)
-      raise error
-    end
+    root_node
   end
 end
 
 api = ZephyrosVlyrs::Api.new(API)
 mode = ZephyrosVlyrs::Mode.new(api, :keybinding => ["F13", ["Shift"]])
 
-api.bind *mode.keybinding do
-  mode.activate!
-end
+mode.activate!
 
 
 wait_on_callbacks
 
+=begin
+
+Notes on key sequences
+
+two sequences can begin with same key, therefore plain recursive approach with timers does not work here,
+I need to build some data structure here
+
+like, for sequences:
+
+UP, LEFT
+UP, RIGHT
+LEFT, LEFT
+RIGHT, RIGHT
+
+it is
+
+    UP        LEFT    RIGHT
+   /  \        |        |
+LEFT RIGHT    LEFT    RIGHT
+
+
+=end
