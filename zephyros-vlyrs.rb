@@ -4,7 +4,6 @@ require 'zephyros'
 require 'zephyros_vlyrs/api'
 require 'zephyros_vlyrs/command'
 require 'zephyros_vlyrs/key_sequence_node'
-require 'zephyros_vlyrs/key_sequence_leaf'
 require 'zephyros_vlyrs/transformable_rect'
 require 'logger'
 
@@ -50,15 +49,16 @@ module ZephyrosVlyrs
       dismiss = Command.new("dismiss", "ESCAPE") {}
 
       @keys_tree = build_key_sequences_tree([
-        top_left_quarter,
         left_half,
+        top_half,
         right_half,
-        bottom_half
+        bottom_half,
+        top_left_quarter
       ])
     end
 
     def build_key_sequences_tree(commands)
-      current_node = KeySequenceNode.new(@mode_keybinding, [])
+      current_node = KeySequenceNode.new(@mode_keybinding)
       current_node.pre_code = proc { @api.show_box("Magic!") }
       root_node = current_node
       commands.each do |command|
@@ -69,7 +69,7 @@ module ZephyrosVlyrs
           if matching_node
             current_node = matching_node
           else
-            new_node = command.keys == processed_keys ? KeySequenceLeaf.new(key, command) : KeySequenceNode.new(key)
+            new_node = KeySequenceNode.new(key, [], (command if command.keys == processed_keys))
             current_node.add_child new_node
             current_node = new_node
           end
@@ -79,21 +79,20 @@ module ZephyrosVlyrs
       root_node
     end
 
-    def bind_keys_tree(keys_tree)
-      @api.bind_key *keys_tree.key do
-        keys_tree.pre_code.call
-        if keys_tree.parent
-          keys_tree.parent.children.each { |c| @api.unbind_key *c.key }
+    def bind_keys_tree(tree)
+      @api.bind_key *tree.key do
+        tree.pre_code.call
+        if tree.parent
+          tree.parent.children.each { |c| @api.unbind_key *c.key }
         else
-          @api.unbind_key *keys_tree.key
+          @api.unbind_key *tree.key
         end
-        if keys_tree.is_a?(KeySequenceLeaf)
-          execute_command(keys_tree.command)
-        elsif keys_tree.is_a?(KeySequenceNode)
-          p keys_tree.children
-          keys_tree.children.each { |c| bind_keys_tree(c) }
-        else
-          raise "Something went wrong with tree"
+        if tree.command && !tree.children.empty? # we have a command and continued sequence on the same key
+          # to figure out
+        elsif tree.command && tree.children.empty?
+          execute_command(tree.command)
+        elsif !tree.command & !tree.children.empty?
+          tree.children.each { |c| bind_keys_tree(c) }
         end
       end
     end
@@ -110,6 +109,7 @@ module ZephyrosVlyrs
       bind_keys_tree(@keys_tree)
     end
 
+    #should be done only in the end of the sequence!
     def dismiss!
       ZephyrosVlyrs.logger.debug("dismissing")
       @api.hide_box
