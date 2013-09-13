@@ -81,7 +81,6 @@ module ZephyrosVlyrs
 
     def bind_keys_tree(keys_tree)
       @api.bind_key *keys_tree.key do
-        ZephyrosVlyrs.logger.debug("pressed #{keys_tree.key.inspect}")
         keys_tree.pre_code.call
         if keys_tree.parent
           keys_tree.parent.children.each { |c| @api.unbind_key *c.key }
@@ -120,8 +119,6 @@ api = ZephyrosVlyrs::Api.new(API)
 mode = ZephyrosVlyrs::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
 
 mode.activate!
-
-
 wait_on_callbacks
 
 =begin

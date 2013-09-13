@@ -10,7 +10,8 @@ module ZephyrosVlyrs
 
     def bind_key(key, modifiers = [], &block)
       ZephyrosVlyrs.logger.debug("binding #{key} #{modifiers.inspect}")
-      @api.bind(key, modifiers, &block)
+      logging_block = proc { |*args| ZephyrosVlyrs.logger.debug("pressed #{key} #{modifiers.inspect}"); block.call(*args) }
+      @api.bind(key, modifiers, &logging_block)
     end
 
     def unbind_key(key, modifiers = [])
