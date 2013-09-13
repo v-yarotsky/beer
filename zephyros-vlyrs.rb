@@ -69,7 +69,7 @@ module ZephyrosVlyrs
           if matching_node
             current_node = matching_node
           else
-            new_node = command.keys == processed_keys ? KeySequenceLeaf.new([key, []], command) : KeySequenceNode.new([key, []], [])
+            new_node = command.keys == processed_keys ? KeySequenceLeaf.new(key, command) : KeySequenceNode.new(key)
             current_node.add_child new_node
             current_node = new_node
           end
@@ -88,12 +88,7 @@ module ZephyrosVlyrs
           @api.unbind_key *keys_tree.key
         end
         if keys_tree.is_a?(KeySequenceLeaf)
-          p keys_tree.command
-          window = @api.focused_window
-          screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
-          ZephyrosVlyrs.logger.debug("#{keys_tree.command.name}, frame: #{screen_frame.inspect}")
-          keys_tree.command.code.call(window, screen_frame, @api)
-          dismiss!
+          execute_command(keys_tree.command)
         elsif keys_tree.is_a?(KeySequenceNode)
           p keys_tree.children
           keys_tree.children.each { |c| bind_keys_tree(c) }
@@ -101,6 +96,14 @@ module ZephyrosVlyrs
           raise "Something went wrong with tree"
         end
       end
+    end
+
+    def execute_command(command)
+      window = @api.focused_window
+      screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
+      ZephyrosVlyrs.logger.debug("#{command.name}, frame: #{screen_frame.inspect}")
+      command.code.call(window, screen_frame, @api)
+      dismiss!
     end
 
     def activate!
