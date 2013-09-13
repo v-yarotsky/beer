@@ -1,8 +1,15 @@
 require '/Applications/Zephyros.app/Contents/Resources/libs/zephyros.rb'
 require 'logger'
+require 'delegate'
 
 module ZephyrosVlyrs
   Thread.abort_on_exception = true
+
+  class << self
+    def logger
+      @logger ||= Logger.new(ENV["DEBUG"] ? "/tmp/zephyros-vlyrs.log" : "/dev/null")
+    end
+  end
 
   class Mode
     attr_reader :keybinding, :commands
@@ -11,45 +18,25 @@ module ZephyrosVlyrs
       @keybinding = options.fetch(:keybinding).dup.freeze
       @consequent_keys_timeout = 200
       @api = api
-      @logger = options.fetch(:logger)
 
-      top_half = Command.new("top_half", "UP") do
-        win = @api.focused_window
-        screen_frame = win.screen.frame_without_dock_or_menu
-        frame = half_top_frame(screen_frame)
-        @logger.debug("top_half, frame: #{frame.inspect}")
-        win.frame = frame
+      top_half = Command.new("top_half", "UP") do |win, screen_frame, api|
+        win.frame = screen_frame.half_top_rect
       end
 
-      bottom_half = Command.new("bottom_half", "DOWN") do
-        win = @api.focused_window
-        screen_frame = win.screen.frame_without_dock_or_menu
-        frame = half_bottom_frame(screen_frame)
-        @logger.debug("bottom_half, frame: #{frame.inspect}")
-        win.frame = frame
+      bottom_half = Command.new("bottom_half", "DOWN") do |win, screen_frame, api|
+        win.frame = screen_frame.half_bottom_rect
       end
 
-      left_half = Command.new("left_half", "LEFT") do
-        win = @api.focused_window
-        screen_frame = win.screen.frame_without_dock_or_menu
-        frame = half_left_frame(screen_frame)
-        @logger.debug("left_half, frame: #{frame.inspect}")
-        win.frame = frame
+      left_half = Command.new("left_half", "LEFT") do |win, screen_frame, api|
+        win.frame = screen_frame.half_left_rect
       end
 
-      right_half = Command.new("right_half", "RIGHT") do
-        win = @api.focused_window
-        screen_frame = win.screen.frame_without_dock_or_menu
-        frame = half_right_frame(screen_frame)
-        @logger.debug("right_half, frame: #{frame.inspect}")
-        win.frame = frame
+      right_half = Command.new("right_half", "RIGHT") do |win, screen_frame, api|
+        win.frame = screen_frame.half_right_rect
       end
 
-      maximize = Command.new("maximize", "RETURN") do
-        win = @api.focused_window
-        frame = win.screen.frame_without_dock_or_menu
-        @logger.debug("maximize, frame: #{frame.inspect}")
-        win.frame = frame
+      maximize = Command.new("maximize", "RETURN") do |win, screen_frame, api|
+        win.frame = screen_frame
       end
 
       dismiss = Command.new("dismiss", "ESCAPE") {}
@@ -76,77 +63,27 @@ module ZephyrosVlyrs
       @api.unbind(key, [])
     end
 
-    def half_left_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.w /= 2
-      frame
-    end
-
-    def half_top_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame
-    end
-
-    def half_right_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.w /= 2
-      frame.x = frame.x + frame.w
-      frame
-    end
-
-    def half_bottom_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame.y = frame.y + frame.h
-      frame
-    end
-
-    def top_left_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame.w /= 2
-      frame
-    end
-
-    def top_right_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame.w /= 2
-      frame.x = frame.x + frame.w
-      frame
-    end
-
-    def bottom_left_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame.w /= 2
-      frame.y = frame.y + frame.h
-      frame
-    end
-
-    def bottom_right_frame(screen_frame)
-      frame = screen_frame.dup
-      frame.h /= 2
-      frame.w /= 2
-      frame.y = frame.y + frame.h
-      frame.x = frame.x + frame.w
-      frame
-    end
-
     def activate!
       @api.show_box("Doing magic!")
-      @logger.debug("binding commands: #{@commands.map(&:inspect).join(", ")}")
+      bind_commands
+    end
+
+    def bind_commands
+      ZephyrosVlyrs.logger.debug("binding commands: #{@commands.map(&:inspect).join(", ")}")
+      window = @api.focused_window
+      screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
       @commands.each do |cmd|
         @api.bind cmd.key, cmd.mash do
-          cmd.code.call
+          ZephyrosVlyrs.logger.debug("#{cmd.name}, frame: #{screen_frame.inspect}")
+          cmd.code.call(window, screen_frame, @api)
           dismiss!
         end
       end
     end
+    private :bind_commands
 
     def dismiss!
-      @logger.debug("dismissing")
+      ZephyrosVlyrs.logger.debug("dismissing")
       @commands.each { |cmd| @api.unbind cmd.key, cmd.mash }
       @api.hide_box
     end
@@ -166,14 +103,75 @@ module ZephyrosVlyrs
       "#<%s:%x %s %s %s" % [self.class.name, object_id, @name, @key.inspect, @mash.inspect]
     end
   end
+
+  class TransformableRect < DelegateClass(Rect)
+    def initialize(rect)
+      super(rect)
+      @rect = rect
+    end
+
+    def half_left_rect
+      make_rect(@rect.dup.tap { |r| r.w /= 2 })
+    end
+
+    def half_top_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2 })
+    end
+
+    def half_right_rect
+      make_rect(@rect.dup.tap { |r| r.w /= 2; r.x += r.w })
+    end
+
+    def half_bottom_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2; r.y += r.h })
+    end
+
+    def top_left_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2 })
+    end
+
+    def top_right_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.x += r.w })
+    end
+
+    def bottom_left_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.y += r.h })
+    end
+
+    def bottom_right_rect
+      make_rect(@rect.dup.tap { |r| r.h /= 2; r.w /= 2; r.x += r.w; r.y += r.h })
+    end
+
+    def make_rect(rect)
+      self.class.new(rect)
+    end
+    private :make_rect
+  end
+
+  class Api
+    class Error < StandardError; end
+
+    def initialize(api)
+      @api = api
+    end
+
+    def method_missing(method_name, *args, &block)
+      @api.send(method_name, *args, &block)
+    rescue RuntimeError => e
+      error = Error.new(e)
+      error.set_backtrace(e.backtrace)
+      raise error
+    end
+  end
 end
 
-logger = Logger.new("/tmp/zephyros-vlyrs.log")
-mode = ZephyrosVlyrs::Mode.new(API, :keybinding => ["F13", ["Shift"]], :logger => logger)
+api = ZephyrosVlyrs::Api.new(API)
+mode = ZephyrosVlyrs::Mode.new(api, :keybinding => ["F13", ["Shift"]])
 
-API.bind *mode.keybinding do
+api.bind *mode.keybinding do
   mode.activate!
 end
+
 
 wait_on_callbacks
 
