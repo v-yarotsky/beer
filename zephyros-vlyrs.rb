@@ -1,4 +1,5 @@
 require '/Applications/Zephyros.app/Contents/Resources/libs/zephyros.rb'
+require 'logger'
 
 module ZephyrosVlyrs
   Thread.abort_on_exception = true
@@ -10,74 +11,48 @@ module ZephyrosVlyrs
       @keybinding = options.fetch(:keybinding).dup.freeze
       @consequent_keys_timeout = 200
       @api = api
+      @logger = options.fetch(:logger)
 
-      top_half = Command.new("UP") do
+      top_half = Command.new("top_half", "UP") do
         win = @api.focused_window
         screen_frame = win.screen.frame_without_dock_or_menu
         frame = half_top_frame(screen_frame)
-        dismiss!
-        if consequent_keybinding("LEFT")
-          frame = top_left_frame(screen_frame)
-        end
-        dismiss!
-        if consequent_keybinding("RIGHT")
-          frame = top_right_frame(screen_frame)
-        end
+        @logger.debug("top_half, frame: #{frame.inspect}")
         win.frame = frame
       end
 
-      bottom_half = Command.new("DOWN") do
+      bottom_half = Command.new("bottom_half", "DOWN") do
         win = @api.focused_window
         screen_frame = win.screen.frame_without_dock_or_menu
         frame = half_bottom_frame(screen_frame)
-        dismiss!
-        if consequent_keybinding("LEFT")
-          frame = bottom_left_frame(screen_frame)
-        end
-        dismiss!
-        if consequent_keybinding("RIGHT")
-          frame = bottom_right_frame(screen_frame)
-        end
+        @logger.debug("bottom_half, frame: #{frame.inspect}")
         win.frame = frame
       end
 
-      left_half = Command.new("LEFT") do
+      left_half = Command.new("left_half", "LEFT") do
         win = @api.focused_window
         screen_frame = win.screen.frame_without_dock_or_menu
         frame = half_left_frame(screen_frame)
-        dismiss!
-        if consequent_keybinding("TOP")
-          frame = top_left_frame(screen_frame)
-        end
-        dismiss!
-        if consequent_keybinding("BOTTOM")
-          frame = bottom_left_frame(screen_frame)
-        end
+        @logger.debug("left_half, frame: #{frame.inspect}")
         win.frame = frame
       end
 
-      right_half = Command.new("RIGHT") do
+      right_half = Command.new("right_half", "RIGHT") do
         win = @api.focused_window
         screen_frame = win.screen.frame_without_dock_or_menu
         frame = half_right_frame(screen_frame)
-        dismiss!
-        if consequent_keybinding("TOP")
-          frame = top_right_frame(screen_frame)
-        end
-        dismiss!
-        if consequent_keybinding("BOTTOM")
-          frame = bottom_right_frame(screen_frame)
-        end
+        @logger.debug("right_half, frame: #{frame.inspect}")
         win.frame = frame
       end
 
-      maximize = Command.new("RETURN") do
+      maximize = Command.new("maximize", "RETURN") do
         win = @api.focused_window
         frame = win.screen.frame_without_dock_or_menu
+        @logger.debug("maximize, frame: #{frame.inspect}")
         win.frame = frame
       end
 
-      dismiss = Command.new("ESCAPE") {}
+      dismiss = Command.new("dismiss", "ESCAPE") {}
 
       @commands = [top_half, bottom_half, left_half, right_half, maximize, dismiss]
     end
@@ -116,14 +91,14 @@ module ZephyrosVlyrs
     def half_right_frame(screen_frame)
       frame = screen_frame.dup
       frame.w /= 2
-      frame.x = frame.w
+      frame.x = frame.x + frame.w
       frame
     end
 
     def half_bottom_frame(screen_frame)
       frame = screen_frame.dup
       frame.h /= 2
-      frame.y = frame.h
+      frame.y = frame.y + frame.h
       frame
     end
 
@@ -138,7 +113,7 @@ module ZephyrosVlyrs
       frame = screen_frame.dup
       frame.h /= 2
       frame.w /= 2
-      frame.x = frame.x
+      frame.x = frame.x + frame.w
       frame
     end
 
@@ -146,7 +121,7 @@ module ZephyrosVlyrs
       frame = screen_frame.dup
       frame.h /= 2
       frame.w /= 2
-      frame.y = frame.h
+      frame.y = frame.y + frame.h
       frame
     end
 
@@ -154,13 +129,14 @@ module ZephyrosVlyrs
       frame = screen_frame.dup
       frame.h /= 2
       frame.w /= 2
-      frame.y = frame.h
-      frame.x = frame.w
+      frame.y = frame.y + frame.h
+      frame.x = frame.x + frame.w
       frame
     end
 
     def activate!
       @api.show_box("Doing magic!")
+      @logger.debug("binding commands: #{@commands.map(&:inspect).join(", ")}")
       @commands.each do |cmd|
         @api.bind cmd.key, cmd.mash do
           cmd.code.call
@@ -170,23 +146,30 @@ module ZephyrosVlyrs
     end
 
     def dismiss!
+      @logger.debug("dismissing")
       @commands.each { |cmd| @api.unbind cmd.key, cmd.mash }
       @api.hide_box
     end
   end
 
   class Command
-    attr_reader :key, :mash, :code
+    attr_reader :name, :key, :mash, :code
 
-    def initialize(key, mash = [], &block)
+    def initialize(name, key, mash = [], &block)
+      @name = name.dup.freeze
       @key = key.dup.freeze
       @mash = mash.dup.freeze
       @code = block
     end
+
+    def inspect
+      "#<%s:%x %s %s %s" % [self.class.name, object_id, @name, @key.inspect, @mash.inspect]
+    end
   end
 end
 
-mode = ZephyrosVlyrs::Mode.new(API, :keybinding => ["F13", ["Shift"]])
+logger = Logger.new("/tmp/zephyros-vlyrs.log")
+mode = ZephyrosVlyrs::Mode.new(API, :keybinding => ["F13", ["Shift"]], :logger => logger)
 
 API.bind *mode.keybinding do
   mode.activate!
