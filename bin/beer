@@ -8,7 +8,7 @@ $:.unshift(File.expand_path("../../lib", __FILE__))
 require 'beer'
 
 api = Beer::Api.new(API)
-mode = Beer::Mode.new(api, :mode_key => Key("Shift+F13"))
+mode = Beer::Mode.new(api, Beer.config)
 
 mode.activate!
 wait_on_callbacks
