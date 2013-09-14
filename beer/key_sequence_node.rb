@@ -1,6 +1,6 @@
-require 'zephyros_vlyrs/command'
+require 'beer/command'
 
-module ZephyrosVlyrs
+module Beer
 
   class KeySequenceNode
     attr_accessor :key, :children, :command, :pre_code, :parent

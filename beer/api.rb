@@ -1,6 +1,6 @@
 require 'set'
 
-module ZephyrosVlyrs
+module Beer
 
   class Api
     class Error < StandardError; end
@@ -11,14 +11,14 @@ module ZephyrosVlyrs
     end
 
     def bind_key(key, modifiers = [], &block)
-      ZephyrosVlyrs.logger.debug("binding #{key} #{modifiers.inspect}")
-      logging_block = proc { |*args| ZephyrosVlyrs.logger.debug("pressed #{key} #{modifiers.inspect}"); block.call(*args) }
+      Beer.logger.debug("binding #{key} #{modifiers.inspect}")
+      logging_block = proc { |*args| Beer.logger.debug("pressed #{key} #{modifiers.inspect}"); block.call(*args) }
       @api.bind(key, modifiers, &logging_block)
       @bound_keys.add([key, modifiers])
     end
 
     def unbind_key(key, modifiers = [])
-      ZephyrosVlyrs.logger.debug("unbinding #{key} #{modifiers.inspect}")
+      Beer.logger.debug("unbinding #{key} #{modifiers.inspect}")
       @api.unbind(key, modifiers)
       @bound_keys.delete([key, modifiers])
     end

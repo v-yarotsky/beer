@@ -1,4 +1,4 @@
-module ZephyrosVlyrs
+module Beer
 
   class Command
     attr_reader :name, :keys, :code

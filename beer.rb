@@ -1,18 +1,18 @@
 $:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
 $:.unshift(File.dirname(__FILE__))
 require 'zephyros'
-require 'zephyros_vlyrs/api'
-require 'zephyros_vlyrs/command'
-require 'zephyros_vlyrs/key_sequence_node'
-require 'zephyros_vlyrs/transformable_rect'
+require 'beer/api'
+require 'beer/command'
+require 'beer/key_sequence_node'
+require 'beer/transformable_rect'
 require 'logger'
 
-module ZephyrosVlyrs
+module Beer
   Thread.abort_on_exception = true
 
   class << self
     def logger
-      @logger ||= Logger.new(ENV["DEBUG"] ? "/tmp/zephyros-vlyrs.log" : "/dev/null")
+      @logger ||= Logger.new(ENV["DEBUG"] ? "/tmp/beer.log" : "/dev/null")
     end
   end
 
@@ -111,7 +111,7 @@ module ZephyrosVlyrs
           timed_thread do
             tree.children.each { |c| bind_keys_tree(c) { child_triggered = true } }
           end
-          ZephyrosVlyrs.logger.debug("child_triggered: #{child_triggered}")
+          Beer.logger.debug("child_triggered: #{child_triggered}")
           unless child_triggered
             execute_command(tree.command)
           end
@@ -134,7 +134,7 @@ module ZephyrosVlyrs
     def execute_command(command)
       window = @api.focused_window
       screen_frame = TransformableRect.new(window.screen.frame_without_dock_or_menu)
-      ZephyrosVlyrs.logger.debug("#{command.name}, frame: #{screen_frame.inspect}")
+      Beer.logger.debug("#{command.name}, frame: #{screen_frame.inspect}")
       command.code.call(window, screen_frame, @api)
       dismiss!
     end
@@ -144,7 +144,7 @@ module ZephyrosVlyrs
     end
 
     def dismiss!
-      ZephyrosVlyrs.logger.debug("dismissing")
+      Beer.logger.debug("dismissing")
       @api.hide_box
       @api.dismiss_bindings!
       bind_keys_tree(@keys_tree)
@@ -152,8 +152,8 @@ module ZephyrosVlyrs
   end
 end
 
-api = ZephyrosVlyrs::Api.new(API)
-mode = ZephyrosVlyrs::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
+api = Beer::Api.new(API)
+mode = Beer::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
 
 mode.activate!
 wait_on_callbacks

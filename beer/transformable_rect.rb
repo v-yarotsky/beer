@@ -1,7 +1,7 @@
 require 'zephyros'
 require 'delegate'
 
-module ZephyrosVlyrs
+module Beer
 
   class TransformableRect < DelegateClass(Rect)
     def initialize(rect)
