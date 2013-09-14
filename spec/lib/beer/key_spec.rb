@@ -53,6 +53,9 @@ module Beer
       expect(Key("Shift+Up")).not_to eq(Key("Shift+Down"))
     end
 
+    specify "#to_s returns human-readable key" do
+      expect(Key("Shift+Up").to_s).to eq("SHIFT+UP")
+    end
   end
 
 end

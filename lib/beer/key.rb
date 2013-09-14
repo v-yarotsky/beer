@@ -31,8 +31,12 @@ module Beer
       [@key, @modifiers]
     end
 
+    def to_s
+      [*@modifiers, @key].join(JOIN)
+    end
+
     def inspect
-      "#<%s:%x %s>" % [self.class.name, object_id, [*@modifiers, @key].join(JOIN)]
+      "#<%s:%x %s>" % [self.class.name, object_id, to_s]
     end
 
     def ==(other)

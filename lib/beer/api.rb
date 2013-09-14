@@ -15,8 +15,8 @@ module Beer
     # @key [Key]
     #
     def bind_key(key, &block)
-      Beer.logger.debug("binding #{key.inspect}")
-      logging_block = proc { |*args| Beer.logger.debug("pressed #{key.inspect}"); block.call(*args) }
+      Beer.logger.debug("binding #{key}")
+      logging_block = proc { |*args| Beer.logger.debug("pressed #{key}"); block.call(*args) }
       @api.bind(*key, &logging_block)
       @bound_keys.add(key)
     end
@@ -24,7 +24,7 @@ module Beer
     # @key [Key]
     #
     def unbind_key(key)
-      Beer.logger.debug("unbinding #{key.inspect}")
+      Beer.logger.debug("unbinding #{key}")
       @api.unbind(*key)
       @bound_keys.delete(key)
     end
