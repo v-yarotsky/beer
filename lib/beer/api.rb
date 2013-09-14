@@ -11,7 +11,7 @@ module Beer
       @bound_keys = Set.new
     end
 
-    # binds [Key] to the given block
+    # binds @key to the given block
     # @key [Key]
     #
     def bind_key(key, &block)

@@ -1,5 +1,8 @@
 module Beer
 
+  # Pauses main thread on given @interval, while the @block is executed in child thread
+  # @interval [Float] pause length in seconds
+  #
   class TimedThread
     def initialize(interval, &block)
       started = Time.now

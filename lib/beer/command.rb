@@ -3,6 +3,9 @@ module Beer
   class Command
     attr_reader :name, :keys, :code
 
+    # @name [String] command name (for log)
+    # @keys [Array<Key>] sequence of trigger keys
+    #
     def initialize(name, *keys, &block)
       @name = name.dup.freeze
       @keys = keys.dup.freeze
