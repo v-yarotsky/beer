@@ -143,7 +143,6 @@ module ZephyrosVlyrs
       bind_keys_tree(@keys_tree)
     end
 
-    #should be done only in the end of the sequence!
     def dismiss!
       ZephyrosVlyrs.logger.debug("dismissing")
       @api.hide_box
@@ -159,27 +158,3 @@ mode = ZephyrosVlyrs::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
 mode.activate!
 wait_on_callbacks
 
-=begin
-
-Notes on key sequences
-
-two sequences can begin with same key, therefore plain recursive approach with timers does not work here,
-I need to build some data structure here
-
-like, for sequences:
-
-UP, LEFT
-UP, RIGHT
-LEFT, LEFT
-RIGHT, RIGHT
-
-it is
-
-    UP        LEFT    RIGHT
-   /  \        |        |
-LEFT RIGHT    LEFT    RIGHT
-
-if stumbled upon sequence with both continuation and leaf (command) - run command if sequence is not continued
-within given timeout
-
-=end
