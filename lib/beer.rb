@@ -39,8 +39,12 @@ module Beer
         Command.new("bottom_right_quarter",  Key("Down"), Key("Right"))  { |win, screen_frame| win.frame = screen_frame.bottom_right_quarter_rect },
         Command.new("bottom_left_quarter",   Key("Down"), Key("Left"))   { |win, screen_frame| win.frame = screen_frame.bottom_left_quarter_rect },
         Command.new("maximize",              Key("Return"))              { |win, screen_frame| win.frame = screen_frame },
-        Command.new("move_to_left_screen",   Key("Left"), Key("Left"))   { |win, screen_frame| move_window_to_screen[win, win.screen.previous_screen] },
-        Command.new("move_to_right_screen",  Key("Right"), Key("Right")) { |win, screen_frame| move_window_to_screen[win, win.screen.next_screen] },
+        Command.new("move_to_left_screen",   Key("Left"), Key("Left"))   { |win| move_window_to_screen[win, win.screen.previous_screen] },
+        Command.new("move_to_right_screen",  Key("Right"), Key("Right")) { |win| move_window_to_screen[win, win.screen.next_screen] },
+        Command.new("focus_window_left",     Key("a"))                   { |win| win.focus_window_left },
+        Command.new("focus_window_up",       Key("w"))                   { |win| win.focus_window_up },
+        Command.new("focus_window_right",    Key("d"))                   { |win| win.focus_window_right },
+        Command.new("focus_window_down",     Key("s"))                   { |win| win.focus_window_down },
         Command.new("dismiss",               Key("Escape"))              {}
       ])
 
