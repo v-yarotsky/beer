@@ -56,7 +56,7 @@ License
 
 > Released under MIT license.
 >
-> Copyright (c) 2013 Steven Degutis
+> Copyright (c) 2013 Vladimir Yarotsky
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
