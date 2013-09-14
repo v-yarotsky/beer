@@ -1,11 +1,12 @@
 require 'beer/key_sequence_node'
+require 'beer/key'
 
 module Beer
 
   class KeySequenceTreeBuilder
     class << self
       def build_from_commands(commands)
-        root_node = KeySequenceNode.new("no_key")
+        root_node = KeySequenceNode.new(Key("no_key"))
         commands.each { |command| build_nodes_for_command(root_node, command) }
         root_node
       end

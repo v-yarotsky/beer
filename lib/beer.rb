@@ -1,4 +1,5 @@
 require 'zephyros'
+require 'beer/key'
 require 'beer/api'
 require 'beer/command'
 require 'beer/key_sequence_tree_builder'
@@ -17,35 +18,35 @@ module Beer
 
   class Mode
     def initialize(api, options)
-      @mode_keybinding = options.fetch(:mode_keybinding).dup.freeze
+      @mode_key = options.fetch(:mode_key).dup.freeze
       @consequent_keys_timeout = options.fetch(:consequent_keys_timeout) { 0.1 }
       @api = api
 
       @keys_tree = KeySequenceTreeBuilder.build_from_commands([
-        Command.new("left_half",            "LEFT")          { |win, screen_frame| win.frame = screen_frame.half_left_rect },
-        Command.new("top_half",             "UP")            { |win, screen_frame| win.frame = screen_frame.half_top_rect },
-        Command.new("right_half",           "RIGHT")         { |win, screen_frame| win.frame = screen_frame.half_right_rect },
-        Command.new("bottom_half",          "DOWN")          { |win, screen_frame| win.frame = screen_frame.half_bottom_rect },
-        Command.new("top_left_quarter",     "UP", "LEFT")    { |win, screen_frame| win.frame = screen_frame.top_left_quarter_rect },
-        Command.new("top_right_quarter",    "UP", "RIGHT")   { |win, screen_frame| win.frame = screen_frame.top_right_quarter_rect },
-        Command.new("bottom_right_quarter", "DOWN", "RIGHT") { |win, screen_frame| win.frame = screen_frame.bottom_right_quarter_rect },
-        Command.new("bottom_left_quarter",  "DOWN", "LEFT")  { |win, screen_frame| win.frame = screen_frame.bottom_left_quarter_rect },
-        Command.new("maximize",             "RETURN")        { |win, screen_frame| win.frame = screen_frame },
-        Command.new("dismiss",              "ESCAPE")        {}
+        Command.new("left_half",            Key("LEFT"))               { |win, screen_frame| win.frame = screen_frame.half_left_rect },
+        Command.new("top_half",             Key("UP"))                 { |win, screen_frame| win.frame = screen_frame.half_top_rect },
+        Command.new("right_half",           Key("RIGHT"))              { |win, screen_frame| win.frame = screen_frame.half_right_rect },
+        Command.new("bottom_half",          Key("DOWN"))               { |win, screen_frame| win.frame = screen_frame.half_bottom_rect },
+        Command.new("top_left_quarter",     Key("UP"), Key("LEFT"))    { |win, screen_frame| win.frame = screen_frame.top_left_quarter_rect },
+        Command.new("top_right_quarter",    Key("UP"), Key("RIGHT"))   { |win, screen_frame| win.frame = screen_frame.top_right_quarter_rect },
+        Command.new("bottom_right_quarter", Key("DOWN"), Key("RIGHT")) { |win, screen_frame| win.frame = screen_frame.bottom_right_quarter_rect },
+        Command.new("bottom_left_quarter",  Key("DOWN"), Key("LEFT"))  { |win, screen_frame| win.frame = screen_frame.bottom_left_quarter_rect },
+        Command.new("maximize",             Key("RETURN"))             { |win, screen_frame| win.frame = screen_frame },
+        Command.new("dismiss",              Key("ESCAPE"))             {}
       ])
 
-      @keys_tree.key = @mode_keybinding
+      @keys_tree.key = @mode_key
       @keys_tree.pre_code = proc { @api.show_box("Magic!") }
     end
 
     def bind_keys_tree(tree, &block)
-      @api.bind_key *tree.key do
+      @api.bind_key tree.key do
         block.call if block # notify bound key was pressed
         tree.pre_code.call
         if tree.parent
-          tree.parent.children.each { |c| @api.unbind_key *c.key }
+          tree.parent.children.each { |c| @api.unbind_key c.key }
         else
-          @api.unbind_key *tree.key
+          @api.unbind_key tree.key
         end
         if tree.command && !tree.children.empty? # we have a command and continued sequence on the same key
           # if one of childs was triggered during some period (how to know?) - go on, else run command

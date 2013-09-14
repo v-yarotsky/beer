@@ -1,0 +1,11 @@
+tmp/
+.DS_Store
+.tags*
+.rvmrc
+.exrc
+nohup.out
+pkg/
+coverage/
+*.sublime-project
+*.sublime-workspace
+*.bundle

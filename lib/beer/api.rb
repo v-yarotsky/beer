@@ -1,3 +1,4 @@
+require 'beer/key'
 require 'set'
 
 module Beer
@@ -10,23 +11,28 @@ module Beer
       @bound_keys = Set.new
     end
 
-    def bind_key(key, modifiers = [], &block)
-      Beer.logger.debug("binding #{key} #{modifiers.inspect}")
-      logging_block = proc { |*args| Beer.logger.debug("pressed #{key} #{modifiers.inspect}"); block.call(*args) }
-      @api.bind(key, modifiers, &logging_block)
-      @bound_keys.add([key, modifiers])
+    # binds [Key] to the given block
+    # @key [Key]
+    #
+    def bind_key(key, &block)
+      Beer.logger.debug("binding #{key.inspect}")
+      logging_block = proc { |*args| Beer.logger.debug("pressed #{key.inspect}"); block.call(*args) }
+      @api.bind(*key, &logging_block)
+      @bound_keys.add(key)
     end
 
-    def unbind_key(key, modifiers = [])
-      Beer.logger.debug("unbinding #{key} #{modifiers.inspect}")
-      @api.unbind(key, modifiers)
-      @bound_keys.delete([key, modifiers])
+    # @key [Key]
+    #
+    def unbind_key(key)
+      Beer.logger.debug("unbinding #{key.inspect}")
+      @api.unbind(*key)
+      @bound_keys.delete(key)
     end
 
     # Only works for keys bound with #bind_key
     def dismiss_bindings!
-      @bound_keys.dup.each do |(key, modifiers)|
-        unbind_key(key, modifiers)
+      @bound_keys.dup.each do |key|
+        unbind_key(key)
       end
     end
 
