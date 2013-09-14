@@ -22,17 +22,26 @@ module Beer
       @consequent_keys_timeout = options.fetch(:consequent_keys_timeout) { 0.1 }
       @api = api
 
+      move_window_to_screen = proc do |window, target_screen|
+        frame = target_screen.frame_without_dock_or_menu
+        frame.w = [frame.w, window.frame.w].min
+        frame.h = [frame.h, window.frame.h].min
+        window.frame = frame
+      end
+
       @keys_tree = KeySequenceTreeBuilder.build_from_commands([
-        Command.new("left_half",            Key("LEFT"))               { |win, screen_frame| win.frame = screen_frame.half_left_rect },
-        Command.new("top_half",             Key("UP"))                 { |win, screen_frame| win.frame = screen_frame.half_top_rect },
-        Command.new("right_half",           Key("RIGHT"))              { |win, screen_frame| win.frame = screen_frame.half_right_rect },
-        Command.new("bottom_half",          Key("DOWN"))               { |win, screen_frame| win.frame = screen_frame.half_bottom_rect },
-        Command.new("top_left_quarter",     Key("UP"), Key("LEFT"))    { |win, screen_frame| win.frame = screen_frame.top_left_quarter_rect },
-        Command.new("top_right_quarter",    Key("UP"), Key("RIGHT"))   { |win, screen_frame| win.frame = screen_frame.top_right_quarter_rect },
-        Command.new("bottom_right_quarter", Key("DOWN"), Key("RIGHT")) { |win, screen_frame| win.frame = screen_frame.bottom_right_quarter_rect },
-        Command.new("bottom_left_quarter",  Key("DOWN"), Key("LEFT"))  { |win, screen_frame| win.frame = screen_frame.bottom_left_quarter_rect },
-        Command.new("maximize",             Key("RETURN"))             { |win, screen_frame| win.frame = screen_frame },
-        Command.new("dismiss",              Key("ESCAPE"))             {}
+        Command.new("left_half",             Key("Left"))               { |win, screen_frame| win.frame = screen_frame.half_left_rect },
+        Command.new("top_half",              Key("Up"))                 { |win, screen_frame| win.frame = screen_frame.half_top_rect },
+        Command.new("right_half",            Key("Right"))              { |win, screen_frame| win.frame = screen_frame.half_right_rect },
+        Command.new("bottom_half",           Key("Down"))               { |win, screen_frame| win.frame = screen_frame.half_bottom_rect },
+        Command.new("top_left_quarter",      Key("Up"), Key("Right"))   { |win, screen_frame| win.frame = screen_frame.top_left_quarter_rect },
+        Command.new("top_right_quarter",     Key("Up"), Key("Right"))   { |win, screen_frame| win.frame = screen_frame.top_right_quarter_rect },
+        Command.new("bottom_right_quarter",  Key("Down"), Key("Right")) { |win, screen_frame| win.frame = screen_frame.bottom_right_quarter_rect },
+        Command.new("bottom_left_quarter",   Key("Down"), Key("Left"))  { |win, screen_frame| win.frame = screen_frame.bottom_left_quarter_rect },
+        Command.new("maximize",              Key("Return"))             { |win, screen_frame| win.frame = screen_frame },
+        Command.new("move_to_left_screen",   Key("Shift+Left"))         { |win, screen_frame, api| move_window_to_screen[win, win.screen.previous_screen] },
+        Command.new("move_to_right_screen",  Key("Shift+Right"))        { |win, screen_frame, api| move_window_to_screen[win, win.screen.next_screen] },
+        Command.new("dismiss",               Key("Escape"))             {}
       ])
 
       @keys_tree.key = @mode_key
