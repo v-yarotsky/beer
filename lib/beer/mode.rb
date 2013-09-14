@@ -12,7 +12,7 @@ module Beer
     Thread.abort_on_exception = true
 
     def initialize(api, options)
-      @mode_key = Key(options.fetch("mode_key") { "Shift+F13" })
+      @mode_key = Key(options.fetch("mode_key") { "Ctrl+Alt+W" })
       @key_sequence_timeout = options.fetch("key_sequence_timeout") { 0.15 }
       @api = api
 
