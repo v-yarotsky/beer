@@ -36,6 +36,11 @@ Available options are:
   * `key_sequence_timeout` - key sequence conflict resolution timeout
   * `log`                  - log file name (Beer will log debug output if DEBUG environment variable is set)
 
+A little demo
+-------------
+
+[![Beer WM Demo](http://img.youtube.com/vi/p_U7Y6txWn8/0.jpg)](http://www.youtube.com/watch?v=p_U7Y6txWn8)
+
 Hint
 ----
 
