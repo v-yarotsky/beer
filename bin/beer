@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
+$:.unshift(File.expand_path("../../lib", __FILE__))
+
+require 'beer'
+
+api = Beer::Api.new(API)
+mode = Beer::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
+
+mode.activate!
+wait_on_callbacks
+

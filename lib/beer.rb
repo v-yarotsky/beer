@@ -1,5 +1,3 @@
-$:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
-$:.unshift(File.dirname(__FILE__))
 require 'zephyros'
 require 'beer/api'
 require 'beer/command'
@@ -87,10 +85,4 @@ module Beer
     end
   end
 end
-
-api = Beer::Api.new(API)
-mode = Beer::Mode.new(api, :mode_keybinding => ["F13", ["Shift"]])
-
-mode.activate!
-wait_on_callbacks
 
