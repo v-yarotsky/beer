@@ -1,5 +1,6 @@
 require 'yaml'
 require 'logger'
+require 'zephyros'
 
 module Beer
   CONFIG_PATH = File.expand_path("~/.beer.yml").freeze
@@ -16,9 +17,9 @@ module Beer
 
   def self.default_config
     {
-      "mode_key" => "Ctrl+Alt+W",
+      "mode_key"             => "Ctrl+Alt+W",
       "key_sequence_timeout" => 0.15,
-      "log" => "/tmp/beer.log"
+      "log"                  => "/tmp/beer.log"
     }
   end
 
@@ -26,5 +27,15 @@ module Beer
     @logger ||= Logger.new(ENV["DEBUG"] ? config.fetch("log") { "/tmp/beer.log" } : "/dev/null")
   end
 
+  # Eager requires
+  require 'beer/key'
+
+  # Lazy requires
+  autoload :Api,                    'beer/api'
+  autoload :Command,                'beer/command'
+  autoload :KeySequenceNode,        'beer/key_sequence_node'
+  autoload :KeySequenceTreeBuilder, 'beer/key_sequence_tree_builder'
+  autoload :Modes,                  'beer/modes'
+  autoload :Utils,                  'beer/utils'
 end
 

@@ -1,4 +1,3 @@
-require 'beer/key'
 require 'set'
 
 module Beer

@@ -1,5 +1,3 @@
-require 'beer/command'
-
 module Beer
 
   class KeySequenceNode

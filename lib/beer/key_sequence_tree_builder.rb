@@ -1,6 +1,3 @@
-require 'beer/key_sequence_node'
-require 'beer/key'
-
 module Beer
 
   class KeySequenceTreeBuilder
