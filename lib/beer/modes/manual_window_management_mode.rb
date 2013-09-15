@@ -2,10 +2,8 @@ module Beer
   module Modes
 
     class ManualWindowManagementMode < BaseMode
-      def initialize(api, options)
-        super(api, options)
-
-        set_keys_tree_from_commands(
+      def supported_commands
+        [
           Command.new("left_half",             Key("Left"))                { |win| resize_window(win, "half_left_rect") },
           Command.new("top_half",              Key("Up"))                  { |win| resize_window(win, "half_top_rect") },
           Command.new("right_half",            Key("Right"))               { |win| resize_window(win, "half_right_rect") },
@@ -22,16 +20,14 @@ module Beer
           Command.new("focus_window_right",    Key("d"))                   { |win| win.focus_window_right },
           Command.new("focus_window_down",     Key("s"))                   { |win| win.focus_window_down },
           Command.new("dismiss",               Key("Escape"))              {}
-        )
+        ]
       end
 
-      def on_activate
-        @api.show_box("Magic!")
+      def resize_window(window, transformation = nil)
+        screen_frame = Utils::TransformableRect.new(window.screen.frame_without_dock_or_menu)
+        window.frame = transformation ? screen_frame.public_send(transformation) : screen_frame
       end
-
-      def on_deactivate
-        @api.hide_box
-      end
+      private :resize_window
 
       def move_window_to_screen(window, target_screen)
         frame = target_screen.frame_without_dock_or_menu
@@ -41,11 +37,13 @@ module Beer
       end
       private :move_window_to_screen
 
-      def resize_window(window, transformation = nil)
-        screen_frame = Utils::TransformableRect.new(window.screen.frame_without_dock_or_menu)
-        window.frame = transformation ? screen_frame.public_send(transformation) : screen_frame
+      def on_activate
+        @api.show_box("Magic!")
       end
-      private :resize_window
+
+      def on_deactivate
+        @api.hide_box
+      end
     end
 
   end

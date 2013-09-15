@@ -6,14 +6,15 @@ module Beer
         @mode_key = Key(options.fetch("mode_key"))
         @key_sequence_timeout = options.fetch("key_sequence_timeout")
         @api = api
-        set_keys_tree_from_commands
-      end
-
-      def set_keys_tree_from_commands(*commands)
-        @keys_tree = KeySequenceTreeBuilder.build_from_commands(commands)
+        @keys_tree = KeySequenceTreeBuilder.build_from_commands(supported_commands)
         @keys_tree.key = @mode_key
       end
-      private :set_keys_tree_from_commands
+
+      # To be implemented in descendants
+      #
+      def supported_commands
+        []
+      end
 
       # To be implemented in descendants
       #
@@ -23,6 +24,11 @@ module Beer
       # To be implemented in descendants
       #
       def on_deactivate
+      end
+
+      def activate!
+        @keys_tree.pre_code = method(:on_activate)
+        bind_keys_tree(@keys_tree)
       end
 
       def bind_keys_tree(tree, &block)
@@ -68,17 +74,13 @@ module Beer
       end
       private :bind_children
 
-      def activate!
-        @keys_tree.pre_code = method(:on_activate)
-        bind_keys_tree(@keys_tree)
-      end
-
       def dismiss!
         Beer.logger.debug("dismissing")
         @api.dismiss_bindings!
         on_deactivate
         bind_keys_tree(@keys_tree)
       end
+
     end
 
   end
