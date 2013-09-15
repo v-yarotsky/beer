@@ -1,6 +1,8 @@
 Beer
 ====
 
+[![Code Climate](https://codeclimate.com/github/v-yarotsky/beer.png)](https://codeclimate.com/github/v-yarotsky/beer)
+
 Beer is a client script for [Zephyros](https://github.com/sdegutis/zephyros) - OS X window manager server.
 Beer implements a window-management mode triggered by a single hotkey.
 That is, you press a hotkey to activate window management mode, press a (rapid)
