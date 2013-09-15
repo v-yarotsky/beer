@@ -1,4 +1,4 @@
-require 'beer/key'
+require 'spec_helper'
 
 module Beer
 

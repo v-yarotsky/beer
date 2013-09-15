@@ -64,7 +64,7 @@ module Beer
       def execute_command(command)
         Beer.logger.debug(command.name)
         window = @api.focused_window
-        command.code.call(window, @api)
+        command.call(window, @api)
         dismiss!
       end
       private :execute_command

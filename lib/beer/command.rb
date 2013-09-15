@@ -12,6 +12,10 @@ module Beer
       @code = block
     end
 
+    def call(*args)
+      @code.call(*args)
+    end
+
     def inspect
       "#<%s:%x %s %s" % [self.class.name, object_id, @name, @keys.inspect]
     end

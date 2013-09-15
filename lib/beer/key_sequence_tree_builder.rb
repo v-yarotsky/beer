@@ -3,8 +3,11 @@ module Beer
   class KeySequenceTreeBuilder
     class << self
       def build_from_commands(commands)
-        root_node = KeySequenceNode.new(Key("no_key"))
-        root_node.parent = KeySequenceNode.new("NOOP")
+        root_node = KeySequenceNode.new(Key("NO_KEY"))
+
+        pseudo_root_node = KeySequenceNode.new(Key("NOOP"))
+        pseudo_root_node.add_child(root_node)
+
         commands.each { |command| build_nodes_for_command(root_node, command) }
         root_node
       end
@@ -18,7 +21,10 @@ module Beer
           if matching_node
             current_node = matching_node
           else
-            new_node = KeySequenceNode.new(key, [], (command if command.keys == processed_keys))
+            new_node = KeySequenceNode.new(key)
+            if command.keys == processed_keys
+              new_node.command = command
+            end
             current_node.add_child new_node
             current_node = new_node
           end

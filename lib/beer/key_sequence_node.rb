@@ -4,11 +4,11 @@ module Beer
     attr_accessor :key, :children, :command, :pre_code, :parent
 
     # @key [Key]
-    # @children [Array<KeySequenceNode>]
-    # @command [NilClass, Command]
     #
-    def initialize(key, children = [], command = nil)
-      @key, @children, @command = key, children, command
+    def initialize(key)
+      @key = key
+      @children = []
+      @command = nil
       @pre_code = proc {}
     end
 
@@ -19,8 +19,16 @@ module Beer
       @children << child
     end
 
+    def ==(other)
+      return true if other.equal?(self)
+      return other.key == key &&
+             other.command == command &&
+             other.children == children &&
+             other.parent == parent
+    end
+
     def inspect
-      "#<KSN:#{object_id} key: #{key.inspect}, children: #{children.inspect}>, command: #{command.inspect}"
+      "#<KSN:#{object_id} key: #{key}, children: #{children.inspect}>, command: #{command.inspect}, parent_key: #{parent.key if parent}"
     end
   end
 
