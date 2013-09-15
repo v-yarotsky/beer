@@ -6,9 +6,10 @@ $:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
 $:.unshift(File.expand_path("../../lib", __FILE__))
 
 require 'beer'
+require 'beer/manual_window_management_mode'
 
 api = Beer::Api.new(API)
-mode = Beer::Mode.new(api, Beer.config)
+mode = Beer::ManualWindowManagementMode.new(api, Beer.config)
 
 mode.activate!
 wait_on_callbacks

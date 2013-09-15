@@ -7,6 +7,7 @@ module Beer
     class << self
       def build_from_commands(commands)
         root_node = KeySequenceNode.new(Key("no_key"))
+        root_node.parent = KeySequenceNode.new("NOOP")
         commands.each { |command| build_nodes_for_command(root_node, command) }
         root_node
       end

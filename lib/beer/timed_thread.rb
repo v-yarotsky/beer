@@ -4,6 +4,8 @@ module Beer
   # @interval [Float] pause length in seconds
   #
   class TimedThread
+    Thread.abort_on_exception = true
+
     def initialize(interval, &block)
       started = Time.now
       t = Thread.new(&block)
