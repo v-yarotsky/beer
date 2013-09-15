@@ -8,23 +8,21 @@ module Beer
     let(:command3) { Command.new("command_3", Key("UP"), Key("LEFT"))  { :command_3 } }
     let(:command4) { Command.new("command_4", Key("UP"), Key("UP"))    { :command_4 } }
 
-    let(:tree) { KeySequenceTreeBuilder.build_from_commands([command1, command2, command3, command4]) }
+    let(:trees) { KeySequenceTreeBuilder.build_trees_from_commands([command1, command2, command3, command4]) }
 
-    it "builds a tree from commands list" do
-      expected_tree = KeySequenceNode.new(Key("NO_KEY"))
-      expected_tree.add_child(
+    it "builds trees from commands list" do
+      root_node = KeySequenceNode.new(Key("NO_KEY"))
+
+      expected_trees = [
         KeySequenceNode.new(Key("UP")).tap do |node|
           node.command = command1
           node.add_child(KeySequenceNode.new(Key("LEFT")).tap  { |n| n.command = command3 })
           node.add_child(KeySequenceNode.new(Key("UP")).tap    { |n| n.command = command4 })
-        end
-      )
-      expected_tree.add_child(
+        end,
         KeySequenceNode.new(Key("DOWN")).tap { |n| n.command = command2 }
-      )
-      expected_tree.parent = KeySequenceNode.new(Key("NOOP")).tap { |n| n.add_child(expected_tree) }
+      ].each { |node| root_node.add_child(node) }
 
-      expect(tree).to eq(expected_tree)
+      expect(trees).to eq(expected_trees)
     end
 
   end

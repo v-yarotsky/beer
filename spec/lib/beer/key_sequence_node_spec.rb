@@ -9,17 +9,6 @@ module Beer
       expect(node.children).to be_empty
     end
 
-    context "pre_code" do
-      it "has noop pre_code block initially" do
-        expect(node.pre_code.call).to eq(nil)
-      end
-
-      it "can have pre_code block" do
-        node.pre_code = proc { :foo }
-        expect(node.pre_code.call).to eq(:foo)
-      end
-    end
-
     context "children nodes" do
       let(:child_node) { KeySequenceNode.new(Key("B")) }
 
