@@ -29,6 +29,7 @@ module Beer
 
       def activate!
         @api.bind_key(@mode_key) do
+          @api.unbind_key(@mode_key)
           on_activate
           @active = true
           bind_first_keys
@@ -86,7 +87,6 @@ module Beer
 
       def dismiss!
         Beer.logger.debug("dismissing")
-        @api.unbind_key(@mode_key)
         @active = false
         on_deactivate
         activate!
