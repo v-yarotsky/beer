@@ -5,9 +5,10 @@ module Beer
       def initialize(api, options)
         @mode_key = Key(options.fetch("mode_key"))
         @key_sequence_timeout = options.fetch("key_sequence_timeout")
+        @auto_dismiss = options.fetch("auto_dismiss")
         @api = api
-        @keys_tree = KeySequenceTreeBuilder.build_from_commands(supported_commands)
-        @keys_tree.key = @mode_key
+        @key_trees = KeySequenceTreeBuilder.build_trees_from_commands(supported_commands)
+        @active = false
       end
 
       # To be implemented in descendants
@@ -27,58 +28,68 @@ module Beer
       end
 
       def activate!
-        @keys_tree.pre_code = method(:on_activate)
-        bind_keys_tree(@keys_tree)
-      end
-
-      def bind_keys_tree(tree, &block)
-        @api.bind_key tree.key do
-          block.call if block # notify bound key was pressed
-          tree.pre_code.call
-          tree.parent.children.each { |c| @api.unbind_key c.key }
-          if tree.command && !tree.children.empty? # we have a command and continued sequence on the same key
-            resolve_binding_conflict(tree)
-          elsif tree.command
-            execute_command(tree.command)
-          elsif !tree.children.empty?
-            bind_children(tree)
-          end
+        @api.bind_key(@mode_key) do
+          on_activate
+          @active = true
+          bind_first_keys
         end
       end
-      private :bind_keys_tree
+
+      def bind_first_keys
+        if @active
+          @key_trees.each { |tree| bind_keys_for_tree(tree) }
+        end
+      end
+      private :bind_first_keys
+
+      def bind_keys_for_tree(node, &block)
+        @api.bind_key node.key do
+          block.call if block # notify bound key was pressed
+          unbind_keys_for_trees(node.parent.children)
+          bind_with_conflict_resolving(node)
+        end
+      end
+      private :bind_keys_for_tree
+
+      def unbind_first_keys
+        unbind_keys_for_trees(@key_trees)
+      end
+      private :unbind_first_keys
+
+      def unbind_keys_for_trees(trees)
+        trees.each { |tree| @api.unbind_key(tree.key) }
+      end
+      private :unbind_keys_for_trees
 
       # If one of children was triggered during some period  - go on with sequence, else run command
       #
-      def resolve_binding_conflict(tree)
+      def bind_with_conflict_resolving(tree)
         child_triggered = false
         Utils::TimedThread.new(@key_sequence_timeout) do
-          bind_children(tree) { child_triggered = true }
+          tree.children.each { |c| bind_keys_for_tree(c) { child_triggered = true } }
         end
         Beer.logger.debug("child_triggered: #{child_triggered}")
-        unless child_triggered
+        if tree.command && !child_triggered
           execute_command(tree.command)
         end
       end
-      private :resolve_binding_conflict
+      private :bind_with_conflict_resolving
 
       def execute_command(command)
         Beer.logger.debug(command.name)
         window = @api.focused_window
         command.call(window, @api)
-        dismiss!
+        unbind_first_keys
+        @auto_dismiss ? dismiss! : bind_first_keys
       end
       private :execute_command
 
-      def bind_children(tree, &block)
-        tree.children.each { |c| bind_keys_tree(c, &block) }
-      end
-      private :bind_children
-
       def dismiss!
         Beer.logger.debug("dismissing")
-        @api.dismiss_bindings!
+        @api.unbind_key(@mode_key)
+        @active = false
         on_deactivate
-        bind_keys_tree(@keys_tree)
+        activate!
       end
 
     end

@@ -27,15 +27,16 @@ Current features:
 * `S`            - focus window to the bottom
 * `A`            - focus window to the left
 * `D`            - focus window to the right
-* `Esc`          - dismiss window-management mode (it's dismissed automatically on action though)
+* `Esc`          - dismiss window-management mode (it's dismissed automatically after action by default, see `auto_dismiss` configuration option)
 
 Configuration
 -------------
 
 Some configuration can be overridden through `~/.beer.yml`.
 Available options are:
-  * `mode_key`             - window management mode trigger key shortcut.
+  * `mode_key`             - window management mode trigger key shortcut
   * `key_sequence_timeout` - key sequence conflict resolution timeout
+  * `auto_dismiss`         - disarm window management mode automatically after action
   * `log`                  - log file name (Beer will log debug output if DEBUG environment variable is set)
 
 A little demo

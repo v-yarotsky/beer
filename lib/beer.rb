@@ -19,7 +19,8 @@ module Beer
     {
       "mode_key"             => "Ctrl+Alt+W",
       "key_sequence_timeout" => 0.15,
-      "log"                  => "/tmp/beer.log"
+      "log"                  => "/tmp/beer.log",
+      "auto_dismiss"         => true
     }
   end
 

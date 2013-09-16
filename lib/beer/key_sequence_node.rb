@@ -1,7 +1,7 @@
 module Beer
 
   class KeySequenceNode
-    attr_accessor :key, :children, :command, :pre_code, :parent
+    attr_accessor :key, :children, :command, :parent
 
     # @key [Key]
     #
@@ -9,7 +9,6 @@ module Beer
       @key = key
       @children = []
       @command = nil
-      @pre_code = proc {}
     end
 
     # This method should be used instead of modifying #children directly
