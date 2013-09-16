@@ -2,14 +2,11 @@ module Beer
 
   class KeySequenceTreeBuilder
     class << self
-      def build_from_commands(commands)
+      def build_trees_from_commands(commands)
         root_node = KeySequenceNode.new(Key("NO_KEY"))
 
-        pseudo_root_node = KeySequenceNode.new(Key("NOOP"))
-        pseudo_root_node.add_child(root_node)
-
         commands.each { |command| build_nodes_for_command(root_node, command) }
-        root_node
+        root_node.children
       end
 
       def build_nodes_for_command(root_node, command)
