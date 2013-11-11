@@ -1,3 +1,5 @@
+require 'thread'
+
 module Beer
   module Modes
 
@@ -9,6 +11,17 @@ module Beer
         @api = api
         @key_trees = KeySequenceTreeBuilder.build_trees_from_commands(supported_commands)
         @active = false
+        @event_lock = Mutex.new
+      end
+
+      def run_ticker
+        return if @ticker && @ticker.alive?
+        @ticker = Thread.new do
+          loop do
+            sleep 0.05
+            on_event(:tick)
+          end
+        end
       end
 
       # To be implemented in descendants
@@ -28,6 +41,7 @@ module Beer
       end
 
       def activate!
+        run_ticker
         @api.bind_key(@mode_key) do
           @api.unbind_key(@mode_key)
           on_activate
@@ -36,55 +50,6 @@ module Beer
         end
       end
 
-      def bind_first_keys
-        if @active
-          @key_trees.each { |tree| bind_keys_for_tree(tree) }
-        end
-      end
-      private :bind_first_keys
-
-      def bind_keys_for_tree(node, &block)
-        @api.bind_key node.key do
-          block.call if block # notify bound key was pressed
-          unbind_keys_for_trees(node.parent.children)
-          bind_with_conflict_resolving(node)
-        end
-      end
-      private :bind_keys_for_tree
-
-      def unbind_first_keys
-        unbind_keys_for_trees(@key_trees)
-      end
-      private :unbind_first_keys
-
-      def unbind_keys_for_trees(trees)
-        trees.each { |tree| @api.unbind_key(tree.key) }
-      end
-      private :unbind_keys_for_trees
-
-      # If one of children was triggered during some period  - go on with sequence, else run command
-      #
-      def bind_with_conflict_resolving(tree)
-        child_triggered = false
-        Utils::TimedThread.new(@key_sequence_timeout) do
-          tree.children.each { |c| bind_keys_for_tree(c) { child_triggered = true } }
-        end
-        Beer.logger.debug("child_triggered: #{child_triggered}")
-        if tree.command && !child_triggered
-          execute_command(tree.command)
-        end
-      end
-      private :bind_with_conflict_resolving
-
-      def execute_command(command)
-        Beer.logger.debug(command.name)
-        window = @api.focused_window
-        command.call(window, @api)
-        unbind_first_keys
-        @auto_dismiss ? dismiss! : bind_first_keys
-      end
-      private :execute_command
-
       def dismiss!
         Beer.logger.debug("dismissing")
         @active = false
@@ -92,6 +57,82 @@ module Beer
         activate!
       end
 
+      private
+
+      def bind_first_keys
+        if @active
+          @key_trees.each { |tree| bind_keys_for_tree(tree) }
+        end
+      end
+
+      def on_event(event, node = nil)
+        @event_lock.synchronize do
+          current_time = Time.now
+
+          case event
+          when :keypress
+            unbind_keys_for_trees(node.parent.children)
+            if late?(current_time)
+              run_node_command(@prev_node)
+            else
+              do_before_timeout_or_for_the_first_time(node, current_time)
+            end
+          when :tick
+            if @prev_node && late?(current_time)
+              unbind_keys_for_trees(@prev_node.children)
+              run_node_command(@prev_node)
+            end
+          end
+        end
+      end
+
+      def late?(current_time)
+        @key_pressed_at && (current_time - @key_pressed_at) > @key_sequence_timeout
+      end
+
+      def bind_keys_for_tree(node)
+        @api.bind_key node.key do
+          on_event(:keypress, node)
+        end
+      end
+
+      def unbind_keys_for_trees(trees)
+        trees.each { |tree| @api.unbind_key(tree.key) }
+      end
+
+      def run_node_command(node)
+        if node.command
+          execute_command(node.command)
+        else
+          Beer.logger.debug("Do nothing - how did I get here?")
+        end
+        @key_pressed_at = nil
+        @prev_node = nil
+        @auto_dismiss ? dismiss! : bind_first_keys
+      end
+
+      def execute_command(command)
+        Beer.logger.debug(command.name)
+        window = @api.focused_window
+        command.call(window, @api)
+      end
+
+      def do_before_timeout_or_for_the_first_time(node, current_time)
+        if node.children.any?
+          if node.command
+            @key_pressed_at = current_time
+            @prev_node = node
+          end
+          node.children.each { |c| bind_keys_for_tree(c) }
+        else
+          run_node_command(node)
+        end
+      end
+
+      # TODO remove?
+      def unbind_first_keys
+        unbind_keys_for_trees(@key_trees)
+      end
     end
 
   end

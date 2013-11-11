@@ -19,7 +19,7 @@ module Beer
           Command.new("focus_window_up",       Key("w"))                   { |win| win.focus_window_up },
           Command.new("focus_window_right",    Key("d"))                   { |win| win.focus_window_right },
           Command.new("focus_window_down",     Key("s"))                   { |win| win.focus_window_down },
-          Command.new("dismiss",               Key("Escape"))              { dismiss! }
+          Command.new("dismiss",               Key("Escape"))              { dismiss! unless @auto_dismiss }
         ]
       end
 

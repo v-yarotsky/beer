@@ -2,10 +2,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-$:.unshift("/Applications/Zephyros.app/Contents/Resources/libs")
 $:.unshift(File.expand_path("../../lib", __FILE__))
 
 require 'beer'
+require 'beer/original_api'
 
 api = Beer::Api.new(API)
 mode = Beer::Modes::ManualWindowManagementMode.new(api, Beer.config)

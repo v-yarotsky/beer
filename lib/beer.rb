@@ -1,6 +1,5 @@
 require 'yaml'
 require 'logger'
-require 'zephyros'
 
 module Beer
   CONFIG_PATH = File.expand_path("~/.beer.yml").freeze
